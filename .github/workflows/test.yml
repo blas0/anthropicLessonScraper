@@ -1,0 +1,50 @@
+name: Test Scraper
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Run weekly to check if the scraper still works with the source repo
+    - cron: '0 0 * * 0'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', '3.11']
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run tests
+      run: |
+        python test_scraper.py
+    
+    - name: Test CLI functionality
+      run: |
+        # Test that the scraper can run without errors
+        echo "2" | python anthropic_lesson_scraper.py
+        
+    - name: Check output files
+      run: |
+        # Verify that the output file was created
+        if [ -f "all_lessons.md" ]; then
+          echo "✅ Output file created successfully"
+          echo "File size: $(wc -c < all_lessons.md) bytes"
+        else
+          echo "❌ Output file not created"
+          exit 1
+        fi
